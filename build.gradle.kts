@@ -1,15 +1,10 @@
-import com.android.build.gradle.internal.dsl.TestOptions
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 buildscript {
   rootProject.apply { from(rootProject.file("gradle/dependencies.gradle.kts")) }
   rootProject.extra["ci"] = rootProject.hasProperty("ci")
-  rootProject.extra["lollipop"] = rootProject.hasProperty("lollipop")
 
   repositories {
     google()
-    jcenter()
-    maven { setUrl("https://plugins.gradle.org/m2/") }
+    gradlePluginPortal()
   }
 
   dependencies {
@@ -17,37 +12,29 @@ buildscript {
     classpath(extra["kotlinGradlePlugin"] as String)
     classpath(extra["kotlinAndroidExtensions"] as String)
     classpath(extra["gradleAndroidCommandPlugin"] as String)
-    classpath(extra["playPublisher"] as String)
     classpath(extra["buildScanPlugin"] as String)
     classpath(extra["dexcountGradlePlugin"] as String)
     classpath(extra["gradleAndroidApkSizePlugin"] as String)
-    classpath(extra["coverallsGradlePlugin"] as String)
     classpath(extra["gradleVersionsPlugin"] as String)
-    classpath(extra["gradleLicensePlugin"] as String)
-    classpath(extra["detektGradlePlugin"] as String)
   }
 }
 
 repositories {
   google()
-  jcenter()
+  gradlePluginPortal()
 }
 
 apply {
   from(file("gradle/scan.gradle.kts"))
   plugin("com.android.application")
-  plugin("kotlin-android")
-  plugin("kotlin-android-extensions")
-  plugin("kotlin-kapt")
-  plugin("android-command")
-  plugin("com.github.triplet.play")
+  plugin("org.jetbrains.kotlin.android")
+  plugin("org.jetbrains.kotlin.android.extensions")
+  plugin("org.jetbrains.kotlin.kapt")
+  plugin("com.novoda.android-command")
   plugin("com.getkeepsafe.dexcount")
   plugin("com.vanniktech.android.apk.size")
   plugin("com.github.ben-manes.versions")
-  plugin("com.jaredsburrows.license")
   from(file("gradle/compile.gradle.kts"))
-  from(file("gradle/quality.gradle"))
-  from(file("gradle/wrapper.gradle.kts"))
 }
 
 android {
@@ -58,14 +45,13 @@ android {
     applicationId = "burrows.apps.example.gif"
     versionCode = 1
     versionName = "1.0"
-    minSdkVersion(if (extra["lollipop"] as Boolean) 21 else extra["minSdkVersion"] as Int) // Optimize build speed - build with minSdk 21 if using multidex
+    minSdkVersion(extra["minSdkVersion"] as Int)
     targetSdkVersion(extra["targetSdkVersion"] as Int)
     testApplicationId = "burrows.apps.example.gif.test"
-    testInstrumentationRunner = "test.CustomTestRunner"
+    testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
     testInstrumentationRunnerArgument("disableAnalytics", "true")
-    resConfigs("en")                                                                    // Optimize APK size - keep only english resource files for now
-    vectorDrawables.useSupportLibrary = true                                            // Optimize APK size - use vector drawables
-    multiDexEnabled = true
+    resConfigs("en")
+    vectorDrawables.useSupportLibrary = true
   }
 
   compileOptions {
@@ -73,16 +59,12 @@ android {
     setTargetCompatibility(extra["javaVersion"])
   }
 
-  // Optimize ci build speed - disable dexing on ci
   dexOptions.preDexLibraries = !(extra["ci"] as Boolean)
 
-  // Need this to help IDE recognize Kotlin
   sourceSets {
-    val commonTest = "src/commonTest/kotlin"
-    getByName("androidTest").java.srcDirs("src/androidTest/kotlin", commonTest)
-    getByName("debug").java.srcDirs("src/debug/kotlin")
-    getByName("main").java.srcDirs("src/main/kotlin")
-    getByName("test").java.srcDirs("src/test/kotlin", commonTest)
+    val commonTest = "src/commonTest/java"
+    getByName("androidTest").java.srcDirs("src/androidTest/java", commonTest)
+    getByName("test").java.srcDirs("src/test/java", commonTest)
   }
 
   lintOptions {
@@ -90,10 +72,11 @@ android {
     textOutput("stdout")
     isCheckAllWarnings = true
     isWarningsAsErrors = true
-    lintConfig = file("${project.rootDir}/config/lint/lint.xml")
+    lintConfig = file("config/lint/lint.xml")
+    isCheckReleaseBuilds = false
+    isCheckTestSources = true
   }
 
-  // Add "debug.keystore" so developers can share APKs with same signatures locally
   signingConfigs {
     getByName("debug") {
       storeFile = file("config/signing/debug.keystore")
@@ -105,7 +88,6 @@ android {
 
   buildTypes {
     getByName("debug") {
-      if (extra["ci"] as Boolean) isTestCoverageEnabled = true                                // https://issuetracker.google.com/issues/37019591
       applicationIdSuffix = ".debug"
 
       buildConfigField("String", "BASE_URL", if (extra["ci"] as Boolean) "\"http://localhost:8080\"" else "\"https://api.riffsy.com\"")
@@ -113,9 +95,9 @@ android {
 
     // Apply fake signing config to release to test "assembleRelease" locally
     getByName("release") {
-      isMinifyEnabled = true                                                                    // Optimize APK size - remove/optimize DEX file(s)
-      isShrinkResources = true                                                                  // Optimize APK size - remove unused resources
-      proguardFile(getDefaultProguardFile("proguard-android-optimize.txt"))               // Optimize APK size - use optimized proguard rules
+      isMinifyEnabled = true
+      isShrinkResources = true
+      proguardFile(getDefaultProguardFile("proguard-android-optimize.txt"))
       proguardFile(file("config/proguard/proguard-rules.txt"))
       signingConfig = signingConfigs.getByName("debug")
 
@@ -125,17 +107,10 @@ android {
 
   testOptions {
     animationsDisabled = true
-    unitTests(delegateClosureOf<TestOptions.UnitTestOptions> {
+    unitTests.apply {
       isReturnDefaultValues = true
       isIncludeAndroidResources = true
-      all(KotlinClosure1<Any, Test>({
-        (this as Test).also { testTask ->
-          testTask.extensions
-            .getByType(JacocoTaskExtension::class.java)
-            .isIncludeNoLocationClasses = true
-        }
-      }, this))
-    })
+    }
     setExecution("ANDROID_TEST_ORCHESTRATOR")
   }
 
@@ -150,22 +125,18 @@ android {
   }
 }
 
-// Resolves dependency versions across test and production APKs, specifically, transitive
-// dependencies. This is required since Espresso internally has a dependency on support-annotations.
 configurations.all {
   resolutionStrategy {
     force(extra["kotlinStdlib"] as String)
+    force(extra["kotlinReflect"] as String)
     force(extra["supportAnnotations"] as String)
-    force(extra["multidex"] as String)
-    force(extra["multidexInstrumentation"] as String)
-    force(extra["orgJacocoAgent"] as String)
-    force(extra["orgJacocoAnt"] as String)
   }
 }
 
 dependencies {
   implementation(extra["design"] as String)
   implementation(extra["cardviewv7"] as String)
+  implementation(extra["constraintLayout"] as String)
   implementation(extra["kotlinStdlib"] as String)
   implementation(extra["okhttp"] as String)
   implementation(extra["loggingInterceptor"] as String)
@@ -178,9 +149,11 @@ dependencies {
   implementation(extra["glide"] as String)
   implementation(extra["okhttp3Integration"] as String)
   implementation(extra["dagger"] as String)
-  implementation(extra["multidex"] as String)
+  implementation(extra["daggerAndroid"] as String)
+  implementation(extra["daggerAndroidSupport"] as String)
 
   kapt(extra["daggerCompiler"] as String)
+  kapt(extra["daggerAndroidProcessor"] as String)
   kapt(extra["glideCompiler"] as String)
 
   debugImplementation(extra["leakcanaryAndroid"] as String)
@@ -202,13 +175,16 @@ dependencies {
   testImplementation(extra["mockitoInline"] as String)
   testImplementation(extra["leakcanaryAndroidNoOp"] as String)
   testImplementation(extra["mockwebserver"] as String)
-  testImplementation(extra["equalsverifier"] as String)
   testImplementation(extra["reflections"] as String)
 }
 
-tasks.withType<KotlinCompile> {
+kapt {
+  useBuildCache = true
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
   kotlinOptions {
-    // TODO Instrumentation run failed due to 'java.lang.IllegalAccessError'
-//    jvmTarget = extra["javaVersion"] as String
+    jvmTarget = rootProject.extra["javaVersion"] as String
+    allWarningsAsErrors = true
   }
 }

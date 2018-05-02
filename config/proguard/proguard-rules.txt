@@ -4,6 +4,11 @@
 -dontnote kotlin.**
 
 ##########################################################################################
+# Dagger 2
+##########################################################################################
+-dontwarn com.google.errorprone.annotations.**
+
+##########################################################################################
 # Retrofit 2
 # http://square.github.io/retrofit/
 ##########################################################################################
@@ -46,7 +51,7 @@
 }
 -keep @com.squareup.moshi.JsonQualifier interface *
 -dontnote com.squareup.moshi.**
--keep class burrows.apps.example.gif.data.rest.model.** { *; }
+-keep class burrows.apps.example.gif.data.model.** { *; }
 
 ##########################################################################################
 # Glide

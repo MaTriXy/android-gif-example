@@ -5,8 +5,6 @@
             "java": "org.gradle.api.plugins.JavaPluginConvention"
         },
         "configurations": [
-            "androidJacocoAgent",
-            "androidJacocoAnt",
             "androidTestAnnotationProcessor",
             "androidTestApi",
             "androidTestApk",
@@ -40,6 +38,7 @@
             "debugApi",
             "debugApiElements",
             "debugApk",
+            "debugBundleElements",
             "debugCompile",
             "debugCompileClasspath",
             "debugCompileOnly",
@@ -56,8 +55,6 @@
             "debugWearBundling",
             "default",
             "implementation",
-            "jacocoAgent",
-            "jacocoAnt",
             "kapt",
             "kaptAndroidTest",
             "kaptAndroidTestDebug",
@@ -67,12 +64,14 @@
             "kaptTestDebug",
             "kaptTestRelease",
             "lintChecks",
+            "lintClassPath",
             "provided",
             "releaseAnnotationProcessor",
             "releaseAnnotationProcessorClasspath",
             "releaseApi",
             "releaseApiElements",
             "releaseApk",
+            "releaseBundleElements",
             "releaseCompile",
             "releaseCompileClasspath",
             "releaseCompileOnly",
@@ -119,7 +118,7 @@
         ],
         "extensions": {
             "ext": "org.gradle.api.plugins.ExtraPropertiesExtension",
-            "buildScan": "com.gradle.scan.plugin.internal.api.f",
+            "buildScan": "com.gradle.scan.plugin.internal.api.g",
             "defaultArtifacts": "org.gradle.api.internal.plugins.DefaultArtifactPublicationSet",
             "reporting": "org.gradle.api.reporting.ReportingExtension",
             "buildOutputs": "org.gradle.api.NamedDomainObjectContainer<com.android.build.gradle.api.BaseVariantOutput>",
@@ -127,12 +126,8 @@
             "kotlin": "org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension",
             "kapt": "org.jetbrains.kotlin.gradle.plugin.KaptExtension",
             "androidExtensions": "org.jetbrains.kotlin.gradle.internal.AndroidExtensionsExtension",
-            "play": "de.triplet.gradle.play.PlayPublisherPluginExtension",
             "dexcount": "com.getkeepsafe.dexcount.DexMethodCountExtension",
-            "apkSize": "com.vanniktech.android.apk.size.ApkSizeExtension",
-            "jacoco": "org.gradle.testing.jacoco.plugins.JacocoPluginExtension",
-            "coveralls": "org.kt3k.gradle.plugin.CoverallsPluginExtension",
-            "detekt": "io.gitlab.arturbosch.detekt.extensions.DetektExtension"
+            "apkSize": "com.vanniktech.android.apk.size.ApkSizeExtension"
         }
     }
 }

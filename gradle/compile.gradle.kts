@@ -1,6 +1,3 @@
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-
-// Turn on all warnings and errors
 tasks.withType<JavaCompile> {
   sourceCompatibility = rootProject.extra["javaVersion"] as String
   targetCompatibility = rootProject.extra["javaVersion"] as String
@@ -9,10 +6,8 @@ tasks.withType<JavaCompile> {
   options.apply {
     compilerArgs.apply {
       add("-Xlint:all")                // Turn on all warnings
-      add("-Xlint:-options")           // Turn off "missing" bootclasspath warning
-      add("-Xlint:-path")              // Turn off warning - annotation processing
-      add("-Xlint:-processing")        // Turn off warning about not claiming annotations
-      add("-Xdiags:verbose")           // Turn on verbose errors
+      add("-Xlint:-classfile")         // Ignore Java 8 method param meta data
+      add("-Xlint:-unchecked")         // Dagger 2 unchecked issues
       add("-Werror")                   // Turn warnings into errors
     }
     encoding = "utf-8"
@@ -21,16 +16,16 @@ tasks.withType<JavaCompile> {
   }
 }
 
-// Turn on logging for all tests, filter to show failures/skips only
 tasks.withType<Test> {
   testLogging {
-    exceptionFormat = TestExceptionFormat.FULL
+    setExceptionFormat("full")
     showCauses = true
     showExceptions = true
     showStackTraces = true
     events("failed", "skipped")
   }
 
+  failFast = true
   val maxWorkerCount = gradle.startParameter.maxWorkerCount
   maxParallelForks = if (maxWorkerCount < 2) 1 else maxWorkerCount / 2
 }

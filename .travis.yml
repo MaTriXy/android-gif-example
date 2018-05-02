@@ -11,7 +11,7 @@ before_install:
   # Download SDK
   - echo yes | sdkmanager "tools" &>/dev/null
   - echo yes | sdkmanager "platform-tools" &>/dev/null
-  - echo yes | sdkmanager "build-tools;27.0.1" &>/dev/null
+  - echo yes | sdkmanager "build-tools;27.0.3" &>/dev/null
   - echo yes | sdkmanager "platforms;android-27" &>/dev/null
   # Download emulator
   - echo yes | sdkmanager "platforms;android-19" &>/dev/null
@@ -25,7 +25,7 @@ before_install:
 
 install:
   # Build debug and release(run proguard)
-  - ./gradlew clean assemble assembleDebugAndroidTest -Pci --stacktrace --scan
+  - ./gradlew clean assemble assembleDebugAndroidTest -Pci -s --scan
 
 before_script:
   # Make sure the emulator is available
@@ -36,17 +36,12 @@ before_script:
   - adb shell settings put global transition_animation_scale 0 &
   - adb shell settings put global animator_duration_scale 0 &
 
-  # For Multidex issue for devices API < 19
-  - adb shell setprop dalvik.vm.dexopt-flags v=n,o=v
-  - adb shell stop installd
-  - adb shell start installd
-
   # Wake up
   - adb shell input keyevent 82 &
 
 script:
   # Run all checks
-  - ./gradlew testDebug connectedDebugAndroidTest createDebugCoverageReport jacocoDebugReport coveralls -Pci --stacktrace --scan
+  - ./gradlew testDebug connectedDebugAndroidTest -Pci -s
 
 branches:
   except:
